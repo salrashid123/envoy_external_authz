@@ -30,30 +30,42 @@ static_resources:
               routes:
               - match:
                   prefix: "/"
-                route: { host_rewrite: server.domain.com, cluster: service_backend  }
-          http_filters:
+                route:
+                  host_rewrite: server.domain.com
+                  cluster: service_backend
+                request_headers_to_add:
+                  - header:
+                      key: x-custom-to-backend
+                      value: value-for-backend-from-envoy
+                per_filter_config:
+                  envoy.ext_authz:
+                    check_settings:
+                      context_extensions:
+                        x-forwarded-host: original-host-as-context  
+                                          
+          http_filters:  
           - name: envoy.lua
             config:
               inline_code: |
-
                 function envoy_on_request(request_handle)
                   request_handle:logInfo('>>> LUA envoy_on_request Called')
                   --buf = request_handle:body()
                   --bufbytes = buf:getBytes(0, buf:length())
                   --request_handle:logInfo(bufbytes)
                 end
-
+                
                 function envoy_on_response(response_handle)
-                  request_handle:logInfo('>>> LUA envoy_on_response Called')
+                  response_handle:logInfo('>>> LUA envoy_on_response Called')
                   response_handle:headers():add("X-Custom-Header-From-LUA", "bar")
                 end
-
+              
           - name: envoy.ext_authz
             config:
               grpc_service:
                 envoy_grpc:
                   cluster_name: ext-authz
                 timeout: 0.5s
+                  
           - name: envoy.router
 
   clusters:

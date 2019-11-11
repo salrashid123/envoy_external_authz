@@ -142,7 +142,7 @@ func (a *AuthorizationServer) Check(ctx context.Context, req *auth.CheckRequest)
 $ envoy -c basic.yaml -l info
 ```
 
-The envoy confg settings describe th [ext-authz](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/ext_authz_filter#config-http-filters-ext-authz) in focus here:
+The envoy confg settings describe [ext-authz](https://www.envoyproxy.io/docs/envoy/latest/configuration/http/http_filters/ext_authz_filter#config-http-filters-ext-authz) as well as a set of custom headers to send to the client and the authorization checker (i'll discuss that bit later on in the doc)
 
 ```yaml
     filter_chains:
@@ -160,7 +160,19 @@ The envoy confg settings describe th [ext-authz](https://www.envoyproxy.io/docs/
               routes:
               - match:
                   prefix: "/"
-                route: { host_rewrite: server.domain.com, cluster: service_backend  }
+                route:
+                  host_rewrite: server.domain.com
+                  cluster: service_backend
+                request_headers_to_add:
+                  - header:
+                      key: x-custom-to-backend
+                      value: value-for-backend-from-envoy
+                per_filter_config:
+                  envoy.ext_authz:
+                    check_settings:
+                      context_extensions:
+                        x-forwarded-host: original-host-as-context  				
+
           http_filters:
           - name: envoy.ext_authz
             config:
@@ -184,7 +196,7 @@ The envoy confg settings describe th [ext-authz](https://www.envoyproxy.io/docs/
                 port_value: 50051                
 ```
 
-The moment you start envoy, it will start sending gRPC healthcheck requests to the backend.  That bit isn't related to authorization services but i thouht it'd be nice to add into envoy's config.  For more info, see the part where the backend requests are made here in this the generic [grpc_heal_proxy](https://github.com/salrashid123/grpc_health_proxy)
+The moment you start envoy, it will start sending gRPC healthcheck requests to the backend.  That bit isn't related to authorization services but i thouht it'd be nice to add into envoy's config.  For more info, see the part where the backend requests are made here in this the generic [grpc_health_proxy](https://github.com/salrashid123/grpc_health_proxy)
 
 
 ### Send Requests
@@ -248,11 +260,93 @@ $ curl -vv -H "Authorization: Bearer foo" -w "\n"  http://localhost:8080/
 < content-length: 2
 < content-type: text/plain; charset=utf-8
 < x-envoy-upstream-service-time: 0
+< x-custom-header-from-lua: bar
 < server: envoy
 
 ok
 ```
 
+### Send Custom Headers to ext_authz server
+
+If you want to add a custom metadata/header to just the authorization server that was _not_ included in the original request (eg to address [envoy issue #3876]([https://github.com/envoyproxy/envoy/issues/3876#issuecomment-552173472),  consider using the [attribute_context extension](
+https://www.envoyproxy.io/docs/envoy/latest/api-v2/service/auth/v2/attribute_context.proto#envoy-api-field-service-auth-v2-attributecontext-context-extensions)
+
+
+In the  configuration above, if you send a request fom the with these headers
+
+Client:
+
+```
+$ curl -vv -H "Authorization: Bearer foo" -H "Host: s2.domain.com" -H "foo: bar" http://localhost:8080/
+
+	> GET / HTTP/1.1
+	> Host: s2.domain.com
+	> User-Agent: curl/7.66.0
+	> Accept: */*
+	> Authorization: Bearer foo
+	> foo: bar
+	> 
+	* Mark bundle as not supporting multiuse
+	< HTTP/1.1 200 OK
+	< x-custom-header-from-backend: from backend
+	< date: Mon, 11 Nov 2019 19:19:44 GMT
+	< content-length: 2
+	< content-type: text/plain; charset=utf-8
+	< x-envoy-upstream-service-time: 0
+	< x-custom-header-from-lua: bar	
+	< server: envoy
+	< 
+
+	ok
+```
+
+External Authorization server will see an additional context value sent `"x-forwarded-host"` which you can use to make decision.
+
+```
+$ go run authz_server/grpc_server.go
+	2019/11/11 11:19:39 Starting gRPC Server at :50051
+	2019/11/11 11:19:42 Handling grpc Check request
+	2019/11/11 11:19:44 >>> Authorization called check()
+	2019/11/11 11:19:44 Inbound Headers: 
+	2019/11/11 11:19:44 {
+	":authority": "s2.domain.com",
+	":method": "GET",
+	":path": "/",
+	"accept": "*/*",
+	"authorization": "Bearer foo",
+	"foo": "bar",
+	"user-agent": "curl/7.66.0",
+	"x-forwarded-proto": "http",
+	"x-request-id": "86c79873-b145-4e82-8e7c-800ecb0ba931"
+	}
+	
+	2019/11/11 11:19:44 Context Extensions: 
+	2019/11/11 11:19:44 {
+	"x-forwarded-host": "original-host-as-context"
+	}
+```
+
+Finally, the backend system _will not_ see that custom header but all the others you specified
+
+```
+$ go run backend_server/http_server.go 
+	2019/11/11 11:19:42 Starting Server..
+	2019/11/11 11:19:44 / called
+	GET / HTTP/1.1
+	Host: server.domain.com
+	Accept: */*
+	Authorization: Bearer foo
+	Content-Length: 0
+	Foo: bar
+	User-Agent: curl/7.66.0
+	X-Custom-Header-From-Authz: some value
+	X-Custom-To-Backend: value-for-backend-from-envoy
+	X-Envoy-Expected-Rq-Timeout-Ms: 15000
+	X-Forwarded-Proto: http
+	X-Request-Id: 86c79873-b145-4e82-8e7c-800ecb0ba931
+```
+
+---
 
 Thats it...but realistically, you probably would be fine with using Envoy's built-in capabilities or with [Open Policy Agent](https://www.openpolicyagent.org/docs/latest/envoy-authorization/) or even [Istio Authorization](https://istio.io/docs/tasks/security/authz-http/).  This repo is just a demo of stand-alone Envoy.
 

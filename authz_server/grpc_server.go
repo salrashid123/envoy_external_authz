@@ -6,6 +6,7 @@ package main
 
 */
 import (
+	"encoding/json"
 	"flag"
 	"fmt"
 	"log"
@@ -55,6 +56,19 @@ type AuthorizationServer struct{}
 
 func (a *AuthorizationServer) Check(ctx context.Context, req *auth.CheckRequest) (*auth.CheckResponse, error) {
 	log.Println(">>> Authorization called check()")
+
+	b, err := json.MarshalIndent(req.Attributes.Request.Http.Headers, "", "  ")
+	if err == nil {
+		log.Println("Inbound Headers: ")
+		log.Println((string(b)))
+	}
+
+	ct, err := json.MarshalIndent(req.Attributes.ContextExtensions, "", "  ")
+	if err == nil {
+		log.Println("Context Extensions: ")
+		log.Println((string(ct)))
+	}
+
 	authHeader, ok := req.Attributes.Request.Http.Headers["authorization"]
 	var splitToken []string
 
