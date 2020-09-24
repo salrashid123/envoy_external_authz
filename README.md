@@ -53,6 +53,7 @@ Anyway, lets get started.  You'll need:
 
 - [Go 11+](https://golang.org/dl/)
 - [Get Envoy](https://www.getenvoy.io/):   The tutorial runs envoy directly here but you can use the docker image as well. 
+  `docker cp `docker create envoyproxy/envoy:v1.16.0`:/usr/local/bin/envoy .`
 
 
 ### Start Backend

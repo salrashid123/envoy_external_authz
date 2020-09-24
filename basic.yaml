@@ -44,9 +44,11 @@ static_resources:
                         x-forwarded-host: original-host-as-context  
                                           
           http_filters:  
-          - name: envoy.lua
-            config:
-              inline_code: |
+
+          - name: envoy.filters.http.lua
+            typed_config:
+              '@type': type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
+              inlineCode: |
                 function envoy_on_request(request_handle)
                   request_handle:logInfo('>>> LUA envoy_on_request Called')
                   --buf = request_handle:body()
@@ -57,15 +59,14 @@ static_resources:
                 function envoy_on_response(response_handle)
                   response_handle:logInfo('>>> LUA envoy_on_response Called')
                   response_handle:headers():add("X-Custom-Header-From-LUA", "bar")
-                end
-              
-          - name: envoy.ext_authz
-            config:
+                end             
+ 
+          - name: envoy.filters.http.ext_authz
+            typed_config:
+              "@type": type.googleapis.com/envoy.extensions.filters.http.ext_authz.v3.ExtAuthz
               grpc_service:
                 envoy_grpc:
-                  cluster_name: ext-authz
-                timeout: 0.5s
-                  
+                  cluster_name: ext-authz               
           - name: envoy.router
 
   clusters:
