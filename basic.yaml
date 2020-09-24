@@ -44,7 +44,6 @@ static_resources:
                         x-forwarded-host: original-host-as-context  
                                           
           http_filters:  
-
           - name: envoy.filters.http.lua
             typed_config:
               '@type': type.googleapis.com/envoy.extensions.filters.http.lua.v3.Lua
@@ -67,7 +66,7 @@ static_resources:
               grpc_service:
                 envoy_grpc:
                   cluster_name: ext-authz               
-          - name: envoy.router
+          - name: envoy.filters.http.router
 
   clusters:
   - name: service_backend
