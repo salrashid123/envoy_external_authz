@@ -18,8 +18,12 @@ Before we get started, a word from our sponsors ...here are some of the other re
 * [Envoy RateLimit HelloWorld](https://github.com/salrashid123/envoy_ratelimit)
 * [Envoy ControlPlane HelloWorld](https://github.com/salrashid123/envoy_control)
 * [Envoy Discovery Service HelloWorld](https://github.com/salrashid123/envoy_discovery)
-- [Envoy FluentD Parser](https://github.com/salrashid123/fluent-plugin-envoy-parser)
+* [Envoy FluentD Parser](https://github.com/salrashid123/fluent-plugin-envoy-parser)
 
+> Update 10/23/20: add OPA Example 
+
+* [Envoy External Authorization with OPA](https://blog.openpolicyagent.org/envoy-external-authorization-with-opa-578213ed567c)
+  To test OPA see `opa/` folder
 
 ## Architecture
 
