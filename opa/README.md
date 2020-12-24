@@ -10,13 +10,18 @@ see
 [Envoy External Authorization with OPA](https://blog.openpolicyagent.org/envoy-external-authorization-with-opa-578213ed567c)
 
 
+  >>> *NOTE*:  this repo uses `envoy 1.17`
+
+```
+docker cp `docker create envoyproxy/envoy-dev:latest`:/usr/local/bin/envoy .
+```
+
 To use my example
 
 #### Run OPA
 
 ```bash
-docker run -p 8181:8181 -p 9191:9191 -v `pwd`/opa_policy:/policy -v `pwd`/opa_config:/config openpolicyagent/opa:0.24.0-envoy run \
-  --server --addr=localhost:8181 --set=plugins.envoy_ext_authz_grpc.addr=:9191 --set=decision_logs.console=true --ignore=.* /policy/policy.rego
+docker run -p 8181:8181 -p 9191:9191 -v `pwd`/opa_policy:/policy -v `pwd`/opa_config:/config openpolicyagent/opa:latest-envoy run   --server --addr=localhost:8181 --set=plugins.envoy_ext_authz_grpc.addr=:9191 --set=decision_logs.console=true --ignore=.* /policy/policy.rego
 ```
 
 the specific rego policy here decodes the inbound JWT (which uses the HS password `secret`), then extracts the sub field to match rules later on

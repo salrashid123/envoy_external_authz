@@ -1,4 +1,4 @@
-# Envoy External Authorization server (envoy.ext_authz) HelloWorld
+# Envoy External Authorization server (envoy.ext_authz) with OPA HelloWorld
 
 I've been working with [Envoy Proxy](https://www.envoyproxy.io/) for sometime and covered a number of 'hello world' type of tutorials derived from my own desire to understanding it better (i tend to understand much more by actually rewriting in code and writing about; it helps reinforce).
 
@@ -24,6 +24,13 @@ Before we get started, a word from our sponsors ...here are some of the other re
 
 * [Envoy External Authorization with OPA](https://blog.openpolicyagent.org/envoy-external-authorization-with-opa-578213ed567c)
   To test OPA see `opa/` folder
+
+
+  >>> *NOTE*:  this repo uses `envoy 1.17`
+
+```
+docker cp `docker create envoyproxy/envoy-dev:latest`:/usr/local/bin/envoy .
+```
 
 ## Architecture
 
@@ -56,7 +63,7 @@ What that means is our gRPC external server needs to implement the `Check()` ser
 Anyway, lets get started.  You'll need:
 
 - [Go 11+](https://golang.org/dl/)
-- [Get Envoy](https://www.getenvoy.io/):   The tutorial runs envoy directly here but you can use the docker image as well. 
+- [Get Envoy 1.17+](https://www.getenvoy.io/):   The tutorial runs envoy directly here but you can use the docker image as well. 
   `docker cp `docker create envoyproxy/envoy:v1.16.0`:/usr/local/bin/envoy .`
 
 
@@ -65,13 +72,15 @@ Anyway, lets get started.  You'll need:
 The backend here is a simple http webserver that will print the inbound headers and add one in the response (```X-Custom-Header-From-Backend```).
 
 ```
-$ go run backend_server/http_server.go 
+cd backend_server/
+$ go run http_server.go 
 ```
 
 ### Start External Authorization server
 
 ```
-$ go run authz_server/grpc_server.go
+cd authz_server/
+$ go run grpc_server.go
 ```
 
 
@@ -281,7 +290,7 @@ In the  configuration above, if you send a request fom the with these headers
 
 Client:
 
-```
+```bash
 $ curl -vv -H "Authorization: Bearer foo" -H "Host: s2.domain.com" -H "foo: bar" http://localhost:8080/
 
 	> GET / HTTP/1.1
@@ -307,7 +316,7 @@ $ curl -vv -H "Authorization: Bearer foo" -H "Host: s2.domain.com" -H "foo: bar"
 
 External Authorization server will see an additional context value sent `"x-forwarded-host"` which you can use to make decision.
 
-```
+```bash
 $ go run authz_server/grpc_server.go
 	2019/11/11 11:19:39 Starting gRPC Server at :50051
 	2019/11/11 11:19:42 Handling grpc Check request
@@ -333,7 +342,7 @@ $ go run authz_server/grpc_server.go
 
 Finally, the backend system _will not_ see that custom header but all the others you specified
 
-```
+```bash
 $ go run backend_server/http_server.go 
 	2019/11/11 11:19:42 Starting Server..
 	2019/11/11 11:19:44 / called
