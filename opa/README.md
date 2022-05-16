@@ -70,35 +70,75 @@ action_allowed {
 
 #### Run as guest
 
+For this we will use an easy jwt generator from Istio:
+
+```bash
+wget --no-verbose https://raw.githubusercontent.com/istio/istio/release-1.10/security/tools/jwt/samples/gen-jwt.py
+wget --no-verbose https://raw.githubusercontent.com/istio/istio/release-1.10/security/tools/jwt/samples/key.pem
+
+## for ref, the JWK URI = "https://raw.githubusercontent.com/istio/istio/release-1.10/security/tools/jwt/samples/jwks.json";
+```
+
+To generate a jwt with a prescribed role:
+
+```bash
+python3 gen-jwt.py -iss foo.bar -aud bar.bar -sub alice  -claims role:guest -expire 100000 key.pem                
+```
+
+
 ```json
 {
+  "alg": "RS256",
+  "kid": "DHFbpoIUqrY8t2zpA2qXfCmr5VO5ZEr4RzHU_-envvQ",
+  "typ": "JWT"
+}
+{
+  "aud": "bar.bar",
+  "exp": 1652826027,
+  "iat": 1652726027,
+  "iss": "foo.bar",
   "role": "guest",
-  "sub": "YWxpY2U=",
-  "nbf": 1514851139,
-  "exp": 1641081539
+  "sub": "bob"
 }
 ```
 
 ```bash
-export GUEST_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiZ3Vlc3QiLCJzdWIiOiJZV3hwWTJVPSIsIm5iZiI6MTUxNDg1MTEzOSwiZXhwIjoxNjQxMDgxNTM5fQ.K5DnnbbIOspRbpCr2IKXE9cPVatGOCBrBQobQmBmaeU"
+export GUEST_TOKEN=""
 
 curl -v -H "Authorization: Bearer $GUEST_TOKEN" http://localhost:8080/get
 ```
 
 ### Run as admin
 
+
+```bash
+python3 gen-jwt.py -iss foo.bar -aud bar.bar -sub bob -claims role:admin -expire 100000 key.pem                
+```
+
 ```json
-{
-  "role": "admin",
-  "sub": "Ym9i",
-  "nbf": 1514851139,
-  "exp": 1641081539
-}
+
 ```
 
 ```bash
-export ADMIN_TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJyb2xlIjoiYWRtaW4iLCJzdWIiOiJZbTlpIiwibmJmIjoxNTE0ODUxMTM5LCJleHAiOjE2NDEwODE1Mzl9.WCxNAveAVAdRCmkpIObOTaSd0AJRECY2Ch2Qdic3kU8"
+export ADMIN_TOKEN="eyJhbGciOiJSUzI1NiIsImtpZCI6IkRIRmJwb0lVcXJZOHQyenBBMnFYZkNtcjVWTzVaRXI0UnpIVV8tZW52dlEiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJiYXIuYmFyIiwiZXhwIjoxNjUyODI1NDY5LCJpYXQiOjE2NTI3MjU0NjksImlzcyI6ImZvby5iYXIiLCJyb2xlIjoiYWRtaW4iLCJzdWIiOiJib2IifQ.d9Gt8O559t4OP4ZJOBFfeUIkHS0vUYlgB8ww7RlwvMUgvXBnD8n8pXGcfb2-7ei_Oby7qHgfoVM20F9EO9xC8tG0JV4IU8JfYJOlNzpzCHp8axrYv1h2yymZ6PRuH0V-rW96yFp_LG4fDicOxWK3EOjGCifNO5ID42KqttaiVtySr0hoaO37mV2nHWpjVa_RrcywGd0IeLWEFoWgO6gbwZPmV5gk5sH5oSsw2quLaRaVZgLaJRpzh6mjTeXYiKQsIGhYnaDpbdOZh4n0MSE1fLxiYSm1s2PK0kERlnPyhEQ3bBE24WlBmhImhtJNhG7oRb_IDCC-LFf72XlVAFfSoA"
 
 
 curl -v -H "Authorization: Bearer $ADMIN_TOKEN" http://localhost:8080/get
+```
+
+
+```json
+{
+  "alg": "RS256",
+  "kid": "DHFbpoIUqrY8t2zpA2qXfCmr5VO5ZEr4RzHU_-envvQ",
+  "typ": "JWT"
+}
+{
+  "aud": "bar.bar",
+  "exp": 1652825469,
+  "iat": 1652725469,
+  "iss": "foo.bar",
+  "role": "admin",
+  "sub": "bob"
+}
 ```
