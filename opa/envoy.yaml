@@ -33,7 +33,9 @@ static_resources:
                         stat_prefix: ext_authz
                       timeout: 0.5s
                 - name: envoy.filters.http.router
-                  typed_config: {}
+                  typed_config:
+                    "@type": type.googleapis.com/envoy.extensions.filters.http.router.v3.Router      
+
   clusters:
   - name: service_httpbin
     connect_timeout: 2s

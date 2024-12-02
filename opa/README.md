@@ -21,7 +21,10 @@ To use my example
 #### Run OPA
 
 ```bash
-docker run -p 8181:8181 -p 9191:9191 -v `pwd`/opa_policy:/policy -v `pwd`/opa_config:/config openpolicyagent/opa:latest-envoy run   --server --addr=localhost:8181 --set=plugins.envoy_ext_authz_grpc.addr=:9191 --set=decision_logs.console=true --ignore=.* /policy/policy.rego
+docker run -p 8181:8181 -p 9191:9191 -v `pwd`/opa_policy:/policy \
+ -v `pwd`/opa_config:/config openpolicyagent/opa:latest-envoy run  \
+   --server --addr=localhost:8181 --set=plugins.envoy_ext_authz_grpc.addr=:9191 \
+    --set=decision_logs.console=true --ignore=.* /policy/policy.rego
 ```
 
 the specific rego policy here decodes the inbound JWT (which uses the HS password `secret`), then extracts the sub field to match rules later on
@@ -68,6 +71,13 @@ action_allowed {
 }
 ```
 
+#### Run Envoy
+
+```bash
+cd opa/
+envoy -c envoy.yaml -l debug
+```
+
 #### Run as guest
 
 For this we will use an easy jwt generator from Istio:
@@ -85,6 +95,7 @@ To generate a jwt with a prescribed role:
 python3 gen-jwt.py -iss foo.bar -aud bar.bar -sub alice  -claims role:guest -expire 100000 key.pem                
 ```
 
+THe token has claims for `role=guest`
 
 ```json
 {
@@ -103,20 +114,19 @@ python3 gen-jwt.py -iss foo.bar -aud bar.bar -sub alice  -claims role:guest -exp
 ```
 
 ```bash
-export GUEST_TOKEN=""
+export GUEST_TOKEN="eyJhbGciOiJSUzI1NiIsImtpZCI6IkRIRmJwb0lVcXJZOHQyenBBMnFYZkNtcjVWTzVaRXI0UnpIVV8tZW52dlEiLCJ0eXAiOiJKV1QifQ.eyJhdWQiOiJiYXIuYmFyIiwiZXhwIjoxNzMzODgxMDY3LCJpYXQiOjE3MzI4ODEwNjcsImlzcyI6ImZvby5iYXIiLCJyb2xlIjoiZ3Vlc3QiLCJzdWIiOiJhbGljZSJ9.GksPP-XWQ6VCq7Pn-QhmwHl5JZrsrdcp90LsYMwq4fdA1zK_6w-RrrC4u_RmuUJGq9UU3Cjthfjoc5xyVMaA1YF5IxcGeYDo3k0z0r8Z4tCsVVZvZKysdDMK9Vf_76ong-NNHO6Z3rWzpaEL6S5G0ZRPse7NNFByecPSPVHXNz8RHsfA4Pa3EV81EHYvHUqaLNg6drm7oKER_yPhNCfhxNWqdr8dAlyc4N9mCmw0jXxmhR7JvorR9vFPPy8tnXsM9_uFSZs9U2Lacvwr6erPflPwSViyq8bDXgey9uOSERXKRUAJBs5qj6G0Xr2uuXuCBs9N49tG1D8fDCAO8hQq9w"
 
 curl -v -H "Authorization: Bearer $GUEST_TOKEN" http://localhost:8080/get
 ```
 
+which should show "denied"
+
 ### Run as admin
 
+Now run as `role=admin`, this will succeed
 
 ```bash
 python3 gen-jwt.py -iss foo.bar -aud bar.bar -sub bob -claims role:admin -expire 100000 key.pem                
-```
-
-```json
-
 ```
 
 ```bash
